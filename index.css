@@ -1,0 +1,11 @@
+#root {
+    display: flex;
+    align-items: flex-start;
+    gap: 4rem;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
