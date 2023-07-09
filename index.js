@@ -8,10 +8,6 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width;
 const H = canvas.height;
 
-const positionDisplay = document.getElementById('position');
-const velocityDisplay = document.getElementById('velocity');
-const accelerationDisplay = document.getElementById('acceleration');
-
 let offsetX = 0;
 let offsetY = 0;
 
