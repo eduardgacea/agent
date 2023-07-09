@@ -51,9 +51,12 @@ const limit2DVector = (v, limit) => {
 };
 const getAngleBetween2DVectors = (v1, v2) => {
     if (getMagnitude(v1) === 0 || getMagnitude(v2) === 0) return 0;
-    const angleCos = dotProduct(v1, v2) / (getMagnitude(v1) * getMagnitude(v2));
-    if (angleCos > 1 || angleCos < -1) return 0;
-    return Math.acos(angleCos);
+    const angle1 = Math.atan2(v1[1], v1[0]);
+    const angle2 = Math.atan2(v2[1], v2[0]);
+    let angle = angle2 - angle1;
+    if (angle > Math.PI) angle -= 2 * Math.PI;
+    else if (angle < -Math.PI) angle += 2 * Math.PI;
+    return angle;
 };
 // p1 should be the origin point
 const getAngleBetween3Points = (p1, p2, p3) => {
@@ -153,36 +156,28 @@ const centerCanvas = function (p, drawGrid = false, gridSize = 10) {
 class Agent {
     constructor(vertexes) {
         this.vertexes = vertexes;
-        this.bufferVertexes = vertexes.map(vertex => [...vertex]);
         this.v = [0, 0];
         this.a = [0, 0];
         this.velDampen = 0.9925;
+        this.accDampen = 0.75;
     }
     calculateNewVertexes() {
-        const velArrowTipX = 100 * getMagnitude(this.v) * Math.cos(getOXAngle(this.v)) + this.bufferVertexes[0][0];
-        const velArrowTipY = 100 * getMagnitude(this.v) * Math.sin(getOXAngle(this.v)) + this.bufferVertexes[0][1];
+        const baseMid = [(this.vertexes[1][0] + this.vertexes[2][0]) / 2, (this.vertexes[1][1] + this.vertexes[2][1]) / 2];
+        const velArrowTipX = 100 * getMagnitude(this.v) * Math.cos(getOXAngle(this.v)) + this.vertexes[0][0];
+        const velArrowTipY = 100 * getMagnitude(this.v) * Math.sin(getOXAngle(this.v)) + this.vertexes[0][1];
         const velArrowTip = [velArrowTipX, velArrowTipY];
-        point(velArrowTip, 4);
-        let baseMid = [(this.bufferVertexes[1][0] + this.bufferVertexes[2][0]) / 2, (this.bufferVertexes[1][1] + this.bufferVertexes[2][1]) / 2];
-        point(baseMid, 4);
-        point(this.bufferVertexes[0], 4);
-        const angle = getAngleBetween3Points(this.bufferVertexes[0], baseMid, velArrowTip);
-        let rotationAngle;
-        if (velArrowTip[0] < baseMid[0]) rotationAngle = Math.PI - angle;
-        else rotationAngle = Math.PI + angle;
-        velocityDisplay.textContent = (rotationAngle * 180) / Math.PI;
-        this.bufferVertexes[1] = rotateAroundCenter(this.bufferVertexes[0], this.bufferVertexes[1], rotationAngle);
-        this.bufferVertexes[2] = rotateAroundCenter(this.bufferVertexes[0], this.bufferVertexes[2], rotationAngle);
-        baseMid = [(this.bufferVertexes[1][0] + this.bufferVertexes[2][0]) / 2, (this.bufferVertexes[1][1] + this.bufferVertexes[2][1]) / 2];
-        line(this.bufferVertexes[0], baseMid);
+        const angle = getAngleBetween3Points(this.vertexes[0], baseMid, velArrowTip);
+        const rotationAngle = angle === 0 ? 0 : angle + Math.PI;
+        this.vertexes[1] = rotateAroundCenter(this.vertexes[0], this.vertexes[1], rotationAngle);
+        this.vertexes[2] = rotateAroundCenter(this.vertexes[0], this.vertexes[2], rotationAngle);
     }
     update() {
         this.v = add2DVectors(this.v, this.a);
-        this.bufferVertexes = this.vertexes.map(vertex => translate(vertex, this.v));
+        this.vertexes = this.vertexes.map(vertex => translate(vertex, this.v));
         this.calculateNewVertexes();
-        this.a = [0, 0];
+        this.v = limit2DVector(this.v, [2, 2]);
         this.v = scale2DVector(this.v, this.velDampen);
-        this.vertexes = this.bufferVertexes.map(vertex => [...vertex]);
+        this.a = scale2DVector(this.a, this.accDampen);
     }
     display() {
         triangle(...this.vertexes);
@@ -207,7 +202,7 @@ function draw() {
 requestAnimationFrame(draw);
 
 document.addEventListener('keydown', e => {
-    const magnitude = 0.025;
+    const magnitude = 0.045;
     const key = e.key;
     switch (key) {
         case 'ArrowUp':
